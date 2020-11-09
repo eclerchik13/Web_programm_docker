@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>login</title>
+    <link type="text/css" href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+
+<form method="post" action="{{path}}">
+    <div class="header">
+        <h3 class="head">Sign in</h3>
+    </div>
+    <div class="clear"></div>
+    <div class="error">{{errorMessage}}</div>
+    <br>
+    <label>
+        <input class="user-input" name="login" type="text" placeholder="Your login">
+    </label>
+    </p>
+    <label>
+        <input name="password" type="text" placeholder="Your password">
+    </label>
+    </p>
+    <p><input type="submit" value="Sign in"></p>
+    <div class="littleText">Don't have an account? <a href="/registration" class="c">Register</a></div>
+</form>
+{{> footer}}
+</body>
+</html>
