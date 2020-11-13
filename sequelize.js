@@ -21,17 +21,17 @@ async function Connection() {
     }
 }
 
+async function GetPassword(login) {
+    let user = await FindByLogin(login);
+    return user.password;
+}
+
 async function FindByLogin(login) {
     return await ModelOfUser.findOne({
         where: {
             login: login
         }
     });
-}
-
-async function GetPassword(login) {
-    let user = await FindByLogin(login);
-    return user.password;
 }
 
 async function FindById(id) {
@@ -54,24 +54,42 @@ async function CreateNewUser(login, email, password){
     return await newUser.save();
 }
 
-async function UpdateData(req, res, next) {
 
-    let user = await FindById(req.user.id);
-
-    const body = req.body;
-    if (body) {
-        console.log(body);
-        if (body.password) {
-            console.log("Changing password");
-            user.password = body.password;
-        }
-        if (body.email) {
-            console.log("Changing email");
-            user.email = body.email;
-        }
-        await user.save();
+//async function UpdateData(req, res, next) {
+async function UpdateData(login,body) {
+    let user = await FindByLogin(login);
+    console.log("FINDED")
+    if (body.email) {
+    //if (user.email){
+        console.log("Changing email");
+        user.email = body.email;
+        user = await user.save();
     }
-    next();
+    if (body.login){
+        console.log("Changing login")
+        user.login = body.login;
+        user = await user.save();
+    }
+    if (body.password) {
+        console.log("Changing password")
+        const HashPass = await argon2.hash(body.password);
+        user.password = HashPass;
+        user = await user.save();
+    }
+    return user;
+}
+
+async function FindAll(){
+    console.log("FIND ALL")
+    let users = await ModelOfUser.findAll();
+    console.log(users)
+    //return await ModelOfUser.findAll();
+    return users
+}
+
+async function DeleteUserByName(login){
+    let user = await FindByLogin(login)
+    await user.destroy();
 }
 
 exports.Connection = Connection;
@@ -81,4 +99,6 @@ exports.GetPassword = GetPassword;
 exports.User = ModelOfUser;
 exports.CreateNewUser = CreateNewUser;
 exports.FindById = FindById;
-exports.UpdateData = UpdateData;
+exports.UpdateData = UpdateData
+exports.DeleteUserByName = DeleteUserByName
+exports.FindAll = FindAll
