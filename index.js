@@ -42,52 +42,37 @@ app.use(passport.session());    //If your application uses persistent login sess
                                 // passport.session() middleware must also be used.
 app.use(LoggingToConsole);
 
-/*
-app.get('/',function(request,response){
-    response.render("home.hbs", {
-        title: title,
-        information: "Welcome to the club!",
-        description: "Serves without any tasks"
-    })
-})*/
-
-/* ---
-app.get('/registration',function (req,res){
-    res.render('registration.hbs',{
-        path: "/registration",
-        errorMessage: req.flash('error')
-    })
-    //console.log(req.flash());
-})*/
-
 //app.post('/registration',passport.authenticate('registration',{
-app.post('/user',passport.authenticate('registration',{
+app.post('/api/user',passport.authenticate('registration',{
     //successRedirect:'/signIn',
-    //failureRedirect: '/registration',
+    failureRedirect: '/api/error',
     failureFlash: true
 }), function (req, res){
     res.send( {message: "Registration"})
 })
 
-// app.post('/user', function (req, res){
-//     console.log(req.body);
-//     res.send( {lox: true})
-// })
-
-/*
-app.get('/signIn',function(req,res){
-    res.render('signIn.hbs',{
-        path: '/signIn',
-        errorMessage: req.flash('error')
+app.post('/api/add',passport.authenticate('cookie-session',{
+    failureRedirect: '/api/error',
+    failureFlash: true
+}), (req,res)=>{
+    db.CreateNewTest(req.body.title,req.body.time,req.body.count).then(test=>{
+        db.CreateNewQuestion(test.id,req.body.questions,req.body.answers).then(()=>{
+            res.send({message: "Test saved"})
+        })
     })
-})*/
 
-app.post('/signIn', passport.authenticate('authentication',{
+})
+
+app.post('/api/login', passport.authenticate('authentication',{
     //successRedirect: '/',
-    //failureRedirect: '/signIn',
+    failureRedirect: '/api/error',
     failureFlash: true
 }), function (req, res){
     res.send({ message: "You auth user"})
+})
+
+app.get('/api/error',(req, res)=>{
+    res.send({message: req.flash('error')})
 })
 
 /*
@@ -103,7 +88,7 @@ app.get('/account',passport.authenticate('cookie-session', {
 
 ///////////CRUD/////////////
 
-app.get('/user', passport.authenticate('cookie-session', {
+app.get('/api/user', passport.authenticate('cookie-session', {
     failureFlash: {message: "You should authorize to access this page"}
 }), async function (req, res) {
     if (req.user.login === "Nastya")
@@ -164,7 +149,7 @@ app.put('/user', passport.authenticate('cookie-session', {
 })*/
 
 
-app.put('/user', passport.authenticate('cookie-session', {
+app.put('/api/user', passport.authenticate('cookie-session', {
     //failureRedirect: '/login',
     failureFlash: {message: "You should authorize to access this page"}
 }), async function (req, res) {
@@ -191,7 +176,7 @@ app.put('/user', passport.authenticate('cookie-session', {
 })
 
 
-app.delete('/user', passport.authenticate('cookie-session', {
+app.delete('/api/user', passport.authenticate('cookie-session', {
     //failureRedirect: '/signIn',     //'/login', --
     failureFlash: {message: "You should authorize to access this page"}
 }), function (req, res) {

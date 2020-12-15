@@ -8,7 +8,8 @@ const sequelize = new Sequelize(param.database,param.username,param.password, {
     dialect: "postgres"
 })
 const ModelOfUser = require("./models/user")(sequelize, Sequelize);
-
+const ModelOfTest = require('./models/test')(sequelize, Sequelize);
+const ModelOfQuestion = require('./models/question')(sequelize,Sequelize);
 
 
 //testing the connection
@@ -42,6 +43,14 @@ async function FindById(id) {
     });
 }
 
+async function FindTestByTitle(title){
+    return await ModelOfTest.findOne({
+        where:{
+            title: title
+        }
+    })
+}
+
 async function CreateNewUser(login, email, password){
     const HashPass = await argon2.hash(password);
 
@@ -54,6 +63,25 @@ async function CreateNewUser(login, email, password){
     return await newUser.save();
 }
 
+async function CreateNewTest(title, time, count){
+    let newTest = ModelOfTest.build({
+        title: title,
+        time: time,
+        count: count
+    })
+    console.log("Saved test")
+    return await newTest.save();
+}
+
+async function CreateNewQuestion(id,questions,answers){
+    let newQuestion = ModelOfQuestion.build({
+        testId: id,
+        questions: questions,
+        answers: answers
+    })
+    console.log("Saved questions")
+    return await newQuestion.save();
+}
 
 //async function UpdateData(req, res, next) {
 async function UpdateData(login,body) {
@@ -102,3 +130,5 @@ exports.FindById = FindById;
 exports.UpdateData = UpdateData
 exports.DeleteUserByName = DeleteUserByName
 exports.FindAll = FindAll
+exports.CreateNewTest = CreateNewTest
+exports.CreateNewQuestion = CreateNewQuestion
