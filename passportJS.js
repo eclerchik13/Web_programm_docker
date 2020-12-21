@@ -72,6 +72,7 @@ passport.use('cookie-session',new CookieStrategy({
    if (!req.user){
        return done(null, false, {message: "ERROR: You doesn't authorize"})
    }
+   //console.log(req.user)
    FindByLogin(req.user.login).then(user => {
        if (user !== undefined && user !== null) {
            return done(null, user);
