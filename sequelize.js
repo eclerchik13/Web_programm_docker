@@ -10,7 +10,7 @@ const sequelize = new Sequelize(param.database,param.username,param.password, {
 const ModelOfUser = require("./models/user")(sequelize, Sequelize);
 const ModelOfTest = require('./models/test')(sequelize, Sequelize);
 const ModelOfQuestion = require('./models/question')(sequelize,Sequelize);
-
+const ModelOfResult = require('./models/testresult')(sequelize,Sequelize)
 
 //testing the connection
 async function Connection() {
@@ -83,7 +83,18 @@ async function CreateNewQuestion(id,questions,answers){
     return await newQuestion.save();
 }
 
-//async function UpdateData(req, res, next) {
+async function CreateNewResult(userId,testId,grade,attempt,title){
+    let newResult = ModelOfResult.build({
+        testId: testId,
+        userId: userId,
+        grade: grade,
+        attempt: attempt,
+        testTitle: title
+    })
+    console.log("Saved result")
+    return await newResult.save()
+}
+
 async function UpdateData(login,body) {
     let user = await FindByLogin(login);
     console.log("FINDED")
@@ -108,11 +119,60 @@ async function UpdateData(login,body) {
 }
 
 async function FindAll(){
-    console.log("FIND ALL")
     let users = await ModelOfUser.findAll();
     console.log(users)
     //return await ModelOfUser.findAll();
     return users
+}
+
+async function FindAllTests(){
+    return await ModelOfTest.findAll();
+}
+
+async function FindTestById(id){
+    return await ModelOfTest.findOne({
+        where:{
+            id: id
+        }
+    })
+}
+
+async function FindQuestionsByIdTest(id){
+    return await ModelOfQuestion.findOne({
+        where: {
+            testId: id
+        }
+    })
+}
+
+async function FindResult(userId,testId){
+    return await ModelOfResult.findAll({
+        limit:1,
+        where:{
+            testId:testId,
+            userId: userId
+        },
+        order:[['createdAt','DESC']]
+    })
+}
+
+async function FindResultById(userId,testId,attempt){
+    return await ModelOfResult.findOne({
+        where:{
+            testId:testId,
+            userId: userId,
+            attempt: attempt
+        }
+    })
+}
+
+async function FindAllResultOfUser(userId){
+    return await ModelOfResult.findAll({
+        where:{
+            userId: userId
+        },
+        raw:true
+    })
 }
 
 async function DeleteUserByName(login){
@@ -132,3 +192,10 @@ exports.DeleteUserByName = DeleteUserByName
 exports.FindAll = FindAll
 exports.CreateNewTest = CreateNewTest
 exports.CreateNewQuestion = CreateNewQuestion
+exports.FindAllTests = FindAllTests
+exports.FindTestById = FindTestById
+exports.FindQuestionsByIdTest = FindQuestionsByIdTest
+exports.FindResult = FindResult
+exports.FindResultById = FindResultById
+exports.CreateNewResult = CreateNewResult
+exports.FindAllResultOfUser = FindAllResultOfUser
