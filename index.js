@@ -26,7 +26,7 @@ app.use(flash());           //управление сообщения на flash
 app.use(cookieSession({
     name: "session",        //по умолчанию
     keys: ['key1','key2'],    //Список ключей, используемых для подписи и проверки значений файлов cookie
-    maxAge: 900000,
+    maxAge: 1000*60*60*24,
     secure: false,//логическое значение, указывающее, должен ли cookie пересылаться только по HTTPS
     signed: true//логическое значение, указывающее, должен ли быть подписан файл cookie
 }));
@@ -42,7 +42,6 @@ app.use(passport.session());    //If your application uses persistent login sess
                                 // passport.session() middleware must also be used.
 app.use(LoggingToConsole);
 
-//app.post('/registration',passport.authenticate('registration',{
 app.post('/api/user',passport.authenticate('registration',{
     //successRedirect:'/signIn',
     failureRedirect: '/api/error',
@@ -60,23 +59,80 @@ app.post('/api/add',passport.authenticate('cookie-session',{
             res.send({message: "Test saved"})
         })
     })
-
 })
 
 app.post('/api/login', passport.authenticate('authentication',{
-    //successRedirect: '/',
     failureRedirect: '/api/error',
     failureFlash: true
 }), function (req, res){
     res.send({ message: "You auth user"})
 })
 
+app.post('/api/test/:id',passport.authenticate('cookie-session',{
+    failureRedirect: '/api/error',
+    failureFlash: true
+}), async (req,res)=>{
+    let counter = 0;
+    let test = await db.FindTestById(req.params.id)
+    let data = await db.FindQuestionsByIdTest(test.id)
+    let foundResult = await db.FindResult(req.user.id,test.id);
+        if( foundResult[0] !== undefined && foundResult[0] !== null){
+            db.FindResultById(req.user.id,test.id,foundResult[0].attempt).then((result)=>{
+                for (let i = 0; i < test.count; i++){
+                    if(req.body.userAnswers[i].answer === data.answers[i].answer){
+                        counter++;
+                    }
+                }
+                let newAttempt = result.attempt + 1;
+                db.CreateNewResult(req.user.id,test.id,Math.round(counter * 100 / test.count),newAttempt,test.title).then(()=>{
+                    res.send({message:"Answers saved"})
+                }).catch(e =>{
+                    res.send({message:"Error: Saving result"})
+                })
+            })
+        }else{
+            for (let i = 0; i < test.count; i++){
+                if(req.body.userAnswers[i].answer === data.answers[i].answer){
+                    counter++;
+                }
+            }
+            db.CreateNewResult(req.user.id,test.id,Math.round(counter * 100 / test.count),1, test.title).then(()=>{
+                res.send({message:"Answers saved"})
+            }).catch(e =>{
+                res.send({message:"Error: Saving result"})
+            })
+            }
+    }
+)
+
 app.get('/api/error',(req, res)=>{
     res.send({message: req.flash('error')})
 })
 
+app.get('/api/tests',passport.authenticate('cookie-session',{
+    failureRedirect:'/api/error',
+    failureFlash:true
+}), async (req,res)=>{
+    res.send(JSON.stringify(await db.FindAllTests()))
+})
+
+app.get('/api/test/:id',passport.authenticate('cookie-session',{
+    failureRedirect:'/api/error',
+    failureFlash:true
+}), async (req,res)=>{
+        let test = await db.FindTestById(req.params.id)
+        let question = await db.FindQuestionsByIdTest(req.params.id);
+        res.send({
+            id: test.id,
+            title: test.title,
+            time: test.time,
+            count: test.count,
+            questions: question.questions
+        })
+})
+
 /*
-app.get('/account',passport.authenticate('cookie-session', {
+app.get('/api/account',passport.authenticate('cookie-session', {
     failureRedirect: '/signIn',
     failureFlash: {message: "You should authorize" }
 }), function (req, res) {
@@ -91,12 +147,20 @@ app.get('/account',passport.authenticate('cookie-session', {
 app.get('/api/user', passport.authenticate('cookie-session', {
     failureFlash: {message: "You should authorize to access this page"}
 }), async function (req, res) {
+    let results = (await db.FindAllResultOfUser(req.user.id))
+    let user = await db.FindById(req.user.id)
+    console.log(results)
+    res.send({
+        login: user.login,
+        email: user.email,
+        results: results
+    })
+    /*
     if (req.user.login === "Nastya")
     {
         if(req.query.all)
         {
-            //res.send({id: req.user.id,login: req.user.login, email: req.user.email});
-            res.send(await db.FindAll())
+            res.send(JSON.stringify(await db.FindAll()))
         }
         if(req.query.name)
         {
@@ -110,44 +174,8 @@ app.get('/api/user', passport.authenticate('cookie-session', {
     }
     else{
         res.send({id: req.user.id,login: req.user.login, email: req.user.email});
-    }
-    /*
-    if (req.user.login == "Nastya")
-    {
-        if(req.query.all == "10")
-        {
-            res.send(db.FindAll())
-        }
-        if(req.query.id !== undefined)
-        {
-            db.FindById(req.query.id).then(user => {
-                if (user !== undefined)
-                {
-                    res.send({id: req.query.id, login: user.login, email: user.email})
-                }
-                else{
-                    res.send({lox: false})
-                }
-            })
-        }
-        else{
-            res.send({id: req.user.id, login: req.user.login, email: req.user.email})
-        }
-    }
-    else{
-        res.send({id: req.user.id, login: req.user.login, email: req.user.email})
     }*/
-    //res.send({lox: true, who: req.user.login});
 })
-
-/* it/s work
-app.put('/user', passport.authenticate('cookie-session', {
-    //failureRedirect: '/login',
-    failureFlash: {message: "You should authorize to access this page"}
-}), async function (req, res) {
-    res.send(await db.UpdateData(req.user.login,req.body));
-})*/
-
 
 app.put('/api/user', passport.authenticate('cookie-session', {
     //failureRedirect: '/login',
@@ -199,14 +227,10 @@ app.delete('/api/user', passport.authenticate('cookie-session', {
 
 });
 
-
-
 //дополнительный обработчик ошибок для 404
 app.use((req, res, next) => {
     next(new Error('404'))
 })
-
-//app.use(LogError);
 
 app.listen(PORT,()=>{
     console.log("Server started at", PORT)
